@@ -13,7 +13,6 @@ export default function AboutScreen() {
         { name: 'DermNet (Skin)', type: 'ResNet50', acc: '89%', desc: 'Detects 23 skin diseases including Melanoma, Eczema, and Acne.' },
         { name: 'BrainTumorNet (MRI)', type: 'Custom CNN', acc: '91%', desc: 'Classifies brain tumors (Glioma, Meningioma, Pituitary).' },
         { name: 'FractureNet', type: 'VGG16', acc: '92%', desc: 'Identifies bone fractures in X-ray images.' },
-        { name: 'NailDiseaseNet', type: 'EfficientNet-B0', acc: '87%', desc: 'Detects nail fungus and other abnormalities.' },
         { name: 'DentalAI', type: 'EfficientNetV2-S', acc: '88%', desc: 'Identifies cavities, gingivitis, and tooth decay.' },
     ];
 

@@ -129,14 +129,7 @@ export default function Dashboard() {
                     router={router}
                 />
 
-                <FeatureCard
-                    title={t('nail_analysis')}
-                    description={t('nail_desc')}
-                    icon="💅"
-                    type="nail"
-                    color="#e11d48"
-                    router={router}
-                />
+
 
                 <FeatureCard
                     title={t('tooth_analysis')}

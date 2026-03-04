@@ -20,11 +20,7 @@ const QUESTIONS = {
         { id: 'cause', text: 'How did the injury happen?', placeholder: 'e.g., Fall, sports injury' },
         { id: 'mobility', text: 'Can you move the affected area?', placeholder: 'e.g., Limited movement, very painful' }
     ],
-    nail: [
-        { id: 'duration', text: 'How long have you had this nail issue?', placeholder: 'e.g., 3 months, 1 year' },
-        { id: 'symptoms', text: 'Describe the symptoms (discoloration, thickening).', placeholder: 'e.g., Yellowing, crumbling edges' },
-        { id: 'pain', text: 'Do you feel any pain or discomfort?', placeholder: 'e.g., Pain when walking, throbbing' }
-    ],
+
     tooth: [
         { id: 'pain_type', text: 'Describe the pain (sharp, throbbing, dull).', placeholder: 'e.g., Sharp pain when eating sweets' },
         { id: 'duration', text: 'How long has it been hurting?', placeholder: 'e.g., 2 days, on and off' },

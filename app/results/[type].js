@@ -17,7 +17,6 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import dermnetTFLite from '../../services/dermnetModelTFLite';
 import fractureModelService from '../../services/fractureModelService';
 import mriModelService from '../../services/mriModelService';
-import nailModelService from '../../services/nailModelService';
 import toothModelService from '../../services/toothModelService';
 import historyService from '../../services/historyService';
 import * as Print from 'expo-print';
@@ -59,8 +58,6 @@ export default function ResultsScreen() {
             performRealFractureAnalysis();
         } else if (type === 'mri') {
             performRealMRIAnalysis();
-        } else if (type === 'nail') {
-            performRealNailAnalysis();
         } else if (type === 'tooth') {
             performRealToothAnalysis();
         } else {
@@ -175,53 +172,6 @@ export default function ResultsScreen() {
         }
     }
 
-
-    const performRealNailAnalysis = async () => {
-        try {
-            console.log('Starting REAL Nail analysis...');
-            setLoadingStatus('Initializing Nail Analysis...');
-            setError(null);
-
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Model loading timed out (60s)')), 60000)
-            );
-
-            await Promise.race([
-                (async () => {
-                    await nailModelService.loadModel((status) => setLoadingStatus(status));
-                    const result = await nailModelService.predict(imageUri, (status) => setLoadingStatus(status));
-                    console.log('Real Nail prediction:', result.prediction.title);
-
-                    setResults({
-                        finalPrediction: result.prediction.title,
-                        confidence: parseFloat(result.prediction.confidence) / 100,
-                        model: 'Nail Disease Model (v1)',
-                        summary: `The analysis detects features consistent with ${result.prediction.title}. Severity: ${result.prediction.severity}. ${result.prediction.urgency}`,
-                        findings: result.probabilities.slice(0, 4).map(p =>
-                            `${p.name}: ${p.percentage}`
-                        ),
-                        recommendations: result.recommendations.treatment,
-                        allProbabilities: result.probabilities,
-                        severity: result.prediction.severity,
-                        urgency: result.prediction.urgency,
-                        precautions: result.recommendations.precautions
-                    });
-                })(),
-                timeoutPromise
-            ]);
-            setLoadingStatus(null);
-        } catch (error) {
-            console.error('Nail analysis failed:', error);
-            Alert.alert(
-                t('Analysis Failed') || 'Analysis Failed',
-                `The AI model could not be loaded (${error.message}).\n\nWould you like to view a simulation or go back?`,
-                [
-                    { text: 'Go Back', style: 'cancel', onPress: () => router.back() },
-                    { text: 'View Simulation', onPress: () => performMockAnalysis() }
-                ]
-            );
-        }
-    };
 
     const performRealToothAnalysis = async () => {
         try {
