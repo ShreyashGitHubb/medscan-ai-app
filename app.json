@@ -43,10 +43,8 @@
         {
           "models": [
             "assets/models/dermnet.tflite",
-            "assets/models/chest_xray.tflite",
             "assets/models/fracture_model.tflite",
             "assets/models/mri_model.tflite",
-            "assets/models/nail_model.tflite",
             "assets/models/tooth_model.tflite"
           ]
         }
