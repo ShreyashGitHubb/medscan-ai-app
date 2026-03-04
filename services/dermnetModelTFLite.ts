@@ -62,6 +62,22 @@ const DISEASE_INFO: any = {
       'Manage stress levels'
     ]
   },
+  // Normal Skin / Systemic Disease fallback
+  systemic_disease: {
+    severity: 'Normal',
+    urgency: 'None',
+    treatment: [
+      'Maintain good hygiene',
+      'Use daily moisturizer',
+      'Apply sunscreen when outdoors',
+      'Stay hydrated'
+    ],
+    precautions: [
+      'Skin appears normal and healthy',
+      'Continue regular routine',
+      'Consult a doctor if any new symptoms appear'
+    ]
+  },
   // Default fallback for others
   default: {
     severity: 'Moderate',
@@ -167,14 +183,21 @@ class DermNetTFLiteService {
       const probabilitiesArray = probabilities;
       
       // Combine with labels
-      const allPredictions = LABELS.map((className, idx) => ({
-        className,
-        // @ts-ignore
-        displayName: DISPLAY_NAMES[className] || className,
-        probability: probabilitiesArray[idx],
-        confidence: probabilitiesArray[idx],
-      })).sort((a, b) => b.probability - a.probability);
-
+      const allPredictions = LABELS.map((className, idx) => {
+        let displayName = DISPLAY_NAMES[className] || className;
+        // Interpret 'systemic_disease' as Normal Skin
+        if (className === 'systemic_disease') {
+            displayName = 'Normal Skin';
+        }
+        return {
+          className,
+          // @ts-ignore
+          displayName,
+          probability: probabilitiesArray[idx],
+          confidence: probabilitiesArray[idx],
+        };
+      }).sort((a, b) => b.probability - a.probability);
+      
       const topPrediction = allPredictions[0];
       const diseaseInfo = DISEASE_INFO[topPrediction.className] || DISEASE_INFO['default'];
 

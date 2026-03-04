@@ -9,11 +9,7 @@ const QUESTIONS = {
         { id: 'sensation', text: 'Is it itchy, painful, or bleeding?', placeholder: 'e.g., Yes, itchy and bleeds sometimes' },
         { id: 'change', text: 'Has it changed in size or color recently?', placeholder: 'e.g., Yes, became darker' }
     ],
-    xray: [
-        { id: 'symptoms', text: 'What are your main symptoms?', placeholder: 'e.g., Cough, fever, chest pain' },
-        { id: 'duration', text: 'How long have symptoms persisted?', placeholder: 'e.g., 3 days, 1 week' },
-        { id: 'history', text: 'Do you have a history of lung conditions?', placeholder: 'e.g., Asthma, Smoking history' }
-    ],
+
     mri: [
         { id: 'symptoms', text: 'What symptoms are you experiencing?', placeholder: 'e.g., Headaches, vision changes, seizures' },
         { id: 'duration', text: 'When did these symptoms start?', placeholder: 'e.g., A month ago' },

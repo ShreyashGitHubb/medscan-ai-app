@@ -15,7 +15,6 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 // Import REAL TFLite Model Service (Works in production!)
 import dermnetTFLite from '../../services/dermnetModelTFLite';
-import chestXrayService from '../../services/chestXrayService';
 import fractureModelService from '../../services/fractureModelService';
 import mriModelService from '../../services/mriModelService';
 import nailModelService from '../../services/nailModelService';
@@ -56,8 +55,6 @@ export default function ResultsScreen() {
         // Use REAL MODELS - Not mock!
         if (type === 'skin') {
             performRealSkinAnalysis();
-        } else if (type === 'xray') {
-            performRealXrayAnalysis();
         } else if (type === 'fracture') {
             performRealFractureAnalysis();
         } else if (type === 'mri') {
@@ -71,42 +68,7 @@ export default function ResultsScreen() {
         }
     }, []);
 
-    const performRealXrayAnalysis = async () => {
-        try {
-            console.log('Starting REAL X-ray model analysis...');
-            setLoadingStatus('Starting X-ray Analysis...');
-            setError(null);
 
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Model loading timed out (15s)')), 15000)
-            );
-
-            await Promise.race([
-                (async () => {
-                    await chestXrayService.loadModel((status) => setLoadingStatus(status));
-                    const result = await chestXrayService.predict(imageUri, (status) => {
-                        setLoadingStatus(status);
-                    });
-                    console.log('Real X-ray prediction:', result.finalPrediction);
-                    setResults(result);
-                })(),
-                timeoutPromise
-            ]);
-
-            setLoadingStatus(null);
-        } catch (error) {
-            console.error('Real X-ray analysis failed:', error);
-            setError(error.message);
-            Alert.alert(
-                'Analysis Error',
-                `X-ray inference failed: ${error.message}\n\nWould you like to view a simulation or go back?`,
-                [
-                    { text: 'Go Back', style: 'cancel', onPress: () => router.back() },
-                    { text: 'View Simulation', onPress: () => performMockAnalysis() }
-                ]
-            );
-        }
-    };
 
     const performRealSkinAnalysis = async () => {
         try {
@@ -339,21 +301,6 @@ export default function ResultsScreen() {
                     "Consult a dermatologist immediately.",
                     "Biopsy recommended for confirmation.",
                     "Avoid scratching or irritating the area."
-                ]
-            });
-        } else if (type === 'xray') {
-            setResults({
-                finalPrediction: 'Pneumonia',
-                confidence: 0.94,
-                model: 'ResNet-18',
-                probabilities: {
-                    'Pneumonia': 0.94,
-                    'Normal': 0.06
-                },
-                details: "Opacities detected in the right lower lobe consistent with consolidation.",
-                recommendations: [
-                    "Clinical correlation with symptoms (fever, cough).",
-                    "Antibiotic treatment consideration by physician."
                 ]
             });
         } else if (type === 'fracture') {

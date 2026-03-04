@@ -8,7 +8,7 @@ const HISTORY_KEY = 'medscan_history_v1';
  * @typedef {Object} ScanRecord
  * @property {string} id - Unique ID
  * @property {number} timestamp - Unix timestamp
- * @property {string} type - 'skin' | 'xray' | 'mri' | 'fracture'
+ * @property {string} type - 'skin' | 'mri' | 'fracture'
  * @property {string} prediction - Main prediction title
  * @property {number} confidence - 0 to 1
  * @property {string} imageUri - Local URI of the image

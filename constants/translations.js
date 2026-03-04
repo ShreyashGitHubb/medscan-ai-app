@@ -1,7 +1,7 @@
 export const TRANSLATIONS = {
     en: {
         welcome: "Welcome Back",
-        subtitle: "AI-powered diagnostics for Skin, X-Ray, and MRI scans.",
+        subtitle: "AI-powered diagnostics for Skin, and MRI scans.",
         start_analysis: "Start Analysis",
         skin_analysis: "Skin Analysis",
         skin_desc: "Detect melanoma & skin conditions.",

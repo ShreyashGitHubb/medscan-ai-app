@@ -109,14 +109,7 @@ export default function Dashboard() {
                     router={router}
                 />
 
-                <FeatureCard
-                    title={t('xray_analysis')}
-                    description={t('xray_desc')}
-                    icon="🩻"
-                    type="xray"
-                    color="#4f46e5"
-                    router={router}
-                />
+
 
                 <FeatureCard
                     title={t('mri_analysis')}

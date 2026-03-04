@@ -11,7 +11,6 @@ export default function AboutScreen() {
 
     const models = [
         { name: 'DermNet (Skin)', type: 'ResNet50', acc: '89%', desc: 'Detects 23 skin diseases including Melanoma, Eczema, and Acne.' },
-        { name: 'CheXNet (X-Ray)', type: 'DenseNet121', acc: '94%', desc: 'Analyzes chest X-rays for Pneumonia, Atelectasis, and more.' },
         { name: 'BrainTumorNet (MRI)', type: 'Custom CNN', acc: '91%', desc: 'Classifies brain tumors (Glioma, Meningioma, Pituitary).' },
         { name: 'FractureNet', type: 'VGG16', acc: '92%', desc: 'Identifies bone fractures in X-ray images.' },
         { name: 'NailDiseaseNet', type: 'EfficientNet-B0', acc: '87%', desc: 'Detects nail fungus and other abnormalities.' },

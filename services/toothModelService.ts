@@ -10,12 +10,11 @@ import Constants from 'expo-constants';
 // Dental classes for EfficientNetV2-S model
 const LABELS = [
   'Healthy Tooth',
-  'Caries (Cavity)',
-  'Gingivitis',
   'Dental Calculus',
-  'Tooth Discoloration',
+  'Caries (Cavity)',
+  'Hypodontia',
   'Mouth Ulcer',
-  'Hypodontia'
+  'Tooth Discoloration'
 ];
 
 interface PredictionResult {
