@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "MedScan AI",
+    "slug": "mobile-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app-logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/app-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.codebyshreyash.mobileapp",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/app-logo.png"
+    },
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d9a348a1-eb50-49a8-ae45-9e439a5a3435"
+      }
+    },
+    "plugins": [
+      [
+        "react-native-fast-tflite",
+        {
+          "models": [
+            "assets/models/dermnet.tflite",
+            "assets/models/chest_xray.tflite",
+            "assets/models/fracture_model.tflite",
+            "assets/models/mri_model.tflite",
+            "assets/models/nail_model.tflite",
+            "assets/models/tooth_model.tflite"
+          ]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow MedScan AI to use your location to find nearby hospitals."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow MedScan AI to access your camera to scan skin conditions."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow MedScan AI to access your photos to upload images for analysis."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ]
+  }
+}

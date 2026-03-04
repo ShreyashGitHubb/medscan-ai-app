@@ -1,0 +1,28 @@
+
+# Ignore node_modules
+node_modules/
+.git/
+
+# Ignore local android/ios folders to force clean managed build (reduces upload size significantly)
+android/
+ios/
+
+# Ignore large model zip files or raw large files not needed in build (if any)
+# Keep assets/models as they ARE needed.
+NewNailModel.zip
+**/*.zip
+backend/
+frontend/
+
+**/*.pth
+New folder/
+Fracure vs non facrue.zip
+MRI.zip
+unused_assets/
+../unused_assets/
+temp_nail_extracted/
+temp_nail_real_extracted/
+temp_tooth_extracted/
+*.zip
+*.pth
+*.onnx
