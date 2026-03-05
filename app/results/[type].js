@@ -18,10 +18,15 @@ import dermnetTFLite from '../../services/dermnetModelTFLite';
 import fractureModelService from '../../services/fractureModelService';
 import mriModelService from '../../services/mriModelService';
 import toothModelService from '../../services/toothModelService';
+import imageQualityService from '../../services/imageQualityService';
+import symptomLogicEngine from '../../services/symptomLogicEngine';
+import oodDetectionService from '../../services/oodDetectionService';
 import historyService from '../../services/historyService';
+import wikiMedicalService from '../../services/wikiMedicalService';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Linking from 'expo-linking';
+import * as Network from 'expo-network';
 import { useLanguage } from '../../context/LanguageContext';
 import NotificationService from '../../services/notificationService';
 
@@ -49,9 +54,33 @@ export default function ResultsScreen() {
     const [hospitals, setHospitals] = useState([]);
     const [showHospitals, setShowHospitals] = useState(false);
     const [error, setError] = useState(null);
+    const [wikiData, setWikiData] = useState(null);
+    const [wikiLoading, setWikiLoading] = useState(false);
 
     useEffect(() => {
-        // Use REAL MODELS - Not mock!
+        startAnalysisFlow();
+    }, []);
+
+    const startAnalysisFlow = async () => {
+        setLoadingStatus('Checking image quality...');
+        const quality = await imageQualityService.evaluateImage(imageUri);
+
+        if (!quality.passed) {
+            setLoadingStatus(null);
+            Alert.alert(
+                'Image Quality Warning ⚠️',
+                `${quality.message}\n\nA poor quality image can cause the AI to give highly inaccurate results.`,
+                [
+                    { text: 'Retake Photo', style: 'cancel', onPress: () => router.back() },
+                    { text: 'Analyze Anyway', onPress: () => routeToAnalysis() }
+                ]
+            );
+        } else {
+            routeToAnalysis();
+        }
+    };
+
+    const routeToAnalysis = () => {
         if (type === 'skin') {
             performRealSkinAnalysis();
         } else if (type === 'fracture') {
@@ -63,7 +92,7 @@ export default function ResultsScreen() {
         } else {
             performMockAnalysis();
         }
-    }, []);
+    };
 
 
 
@@ -85,9 +114,27 @@ export default function ResultsScreen() {
                     });
                     console.log('Real model prediction:', result.prediction.title);
                     const title = result.prediction.title || 'Unknown Condition';
+                    const rawConfidence = parseFloat(result.prediction.confidence) / 100;
+
+                    // OOD Check - Ensure it's not a random object
+                    const top1 = result.probabilities[0]?.percentage ? parseFloat(result.probabilities[0].percentage) / 100 : rawConfidence;
+                    const top2 = result.probabilities[1]?.percentage ? parseFloat(result.probabilities[1].percentage) / 100 : 0;
+
+                    const oodCheck = oodDetectionService.evaluateProbabilities(top1, top2, 'skin');
+                    if (oodCheck.isOOD) {
+                        setLoadingStatus(null);
+                        Alert.alert("Scan Unsuccessful", oodCheck.reason, [{ text: "OK", onPress: () => router.back() }]);
+                        return;
+                    }
+
+                    // Symptom Cross-Check
+                    const crossCheck = symptomLogicEngine.evaluate('skin', title, rawConfidence, symptoms);
+
                     setResults({
                         finalPrediction: title,
-                        confidence: parseFloat(result.prediction.confidence) / 100,
+                        confidence: crossCheck.adjustedConfidence,
+                        originalConfidence: rawConfidence,
+                        symptomWarning: crossCheck.warningMessage,
                         model: 'DermNet ResNet50 (TFLite)',
                         summary: `The AI model analysis detects features consistent with ${title}. Severity: ${result.prediction.severity}. ${result.prediction.urgency}`,
                         findings: result.probabilities.slice(1, 5).map(p =>
@@ -133,7 +180,23 @@ export default function ResultsScreen() {
                     await fractureModelService.loadModel((status) => setLoadingStatus(status));
                     const result = await fractureModelService.predict(imageUri, (status) => setLoadingStatus(status));
                     console.log('Real Fracture prediction:', result.finalPrediction);
-                    setResults(result);
+
+                    // OOD Check
+                    const oodCheck = oodDetectionService.evaluateProbabilities(result.confidence, 0, 'fracture'); // Since it's binary, top2 is 0 or 1-conf
+                    if (oodCheck.isOOD) {
+                        setLoadingStatus(null);
+                        Alert.alert("Scan Unsuccessful", oodCheck.reason, [{ text: "OK", onPress: () => router.back() }]);
+                        return;
+                    }
+
+                    const crossCheck = symptomLogicEngine.evaluate('fracture', result.finalPrediction, result.confidence, symptoms);
+
+                    setResults({
+                        ...result,
+                        confidence: crossCheck.adjustedConfidence,
+                        originalConfidence: result.confidence,
+                        symptomWarning: crossCheck.warningMessage
+                    });
                 })(),
                 timeoutPromise
             ]);
@@ -192,21 +255,33 @@ export default function ResultsScreen() {
                     // Better to add import in a separate tool call to be clean or use MultiReplace.
                     // I'll stick to function here.
 
-                    const results = await toothModelService.classify(imageUri);
-                    const topResult = results[0];
+                    const resultsArray = await toothModelService.classify(imageUri);
+                    const topResult = resultsArray[0];
+
+                    // OOD Check
+                    const oodCheck = oodDetectionService.evaluateProbabilities(resultsArray[0].confidence, resultsArray.length > 1 ? resultsArray[1].confidence : 0, 'tooth');
+                    if (oodCheck.isOOD) {
+                        setLoadingStatus(null);
+                        Alert.alert("Scan Unsuccessful", oodCheck.reason, [{ text: "OK", onPress: () => router.back() }]);
+                        return;
+                    }
+
+                    const crossCheck = symptomLogicEngine.evaluate('tooth', topResult.class, topResult.confidence, symptoms);
 
                     setResults({
                         finalPrediction: topResult.class,
-                        confidence: topResult.confidence,
-                        model: 'EfficientNetV2-S (Dental)', // Reporting the architecture we identified
+                        confidence: crossCheck.adjustedConfidence,
+                        originalConfidence: topResult.confidence,
+                        symptomWarning: crossCheck.warningMessage,
+                        model: 'EfficientNetV2-S (Dental)',
                         summary: `The diagnosis suggests ${topResult.class}. Please consult a dentist for confirmation.`,
-                        findings: results.slice(1, 4).map(r => `${r.class}: ${(r.confidence * 100).toFixed(1)}%`),
+                        findings: resultsArray.slice(1, 4).map(r => `${r.class}: ${(r.confidence * 100).toFixed(1)}%`),
                         recommendations: [
                             "Maintain oral hygiene (brush twice daily).",
                             "Schedule a dental checkup.",
                             "Avoid sugary foods and drinks."
                         ],
-                        probabilities: results.reduce((acc, curr) => ({ ...acc, [curr.class]: curr.confidence }), {})
+                        probabilities: resultsArray.reduce((acc, curr) => ({ ...acc, [curr.class]: curr.confidence }), {})
                     });
                 })(),
                 timeoutPromise
@@ -395,7 +470,7 @@ export default function ResultsScreen() {
         Alert.alert(t('reminder_set'), `Reminder set for ${label}.`);
     };
 
-    // --- AUTO SAVE ---
+    // --- AUTO SAVE & ONLINE VERIFICATION ---
     useEffect(() => {
         if (results && results.finalPrediction) {
             const saveToHistory = async () => {
@@ -408,6 +483,22 @@ export default function ResultsScreen() {
                 });
             };
             saveToHistory();
+
+            const fetchOnlineInsights = async () => {
+                try {
+                    const networkState = await Network.getNetworkStateAsync();
+                    if (networkState.isConnected && networkState.isInternetReachable !== false) {
+                        setWikiLoading(true);
+                        const info = await wikiMedicalService.fetchDiseaseInfo(results.finalPrediction);
+                        if (info) setWikiData(info);
+                        setWikiLoading(false);
+                    }
+                } catch (e) {
+                    console.log("Network fetch error", e);
+                    setWikiLoading(false);
+                }
+            };
+            fetchOnlineInsights();
         }
     }, [results]);
 
@@ -601,6 +692,16 @@ export default function ResultsScreen() {
 
                     <Text style={styles.microText}>{t('model_used')}: {results.model}</Text>
 
+                    {results.symptomWarning && (
+                        <View style={{ backgroundColor: 'rgba(255, 193, 7, 0.1)', padding: 15, borderRadius: 12, marginTop: 15, borderWidth: 1, borderColor: 'rgba(255, 193, 7, 0.4)' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                <Ionicons name="warning" size={18} color="#b48600" />
+                                <Text style={{ color: '#b48600', fontWeight: 'bold', marginLeft: 6 }}>Symptom Mismatch Alert</Text>
+                            </View>
+                            <Text style={{ color: '#b48600', fontSize: 13, lineHeight: 18 }}>{results.symptomWarning}</Text>
+                        </View>
+                    )}
+
                     {symptoms && (
                         <View style={{ marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: COLORS.border }}>
                             <Text style={[styles.label, { marginBottom: 8 }]}>Patient Symptoms</Text>
@@ -681,6 +782,54 @@ export default function ResultsScreen() {
                         <Ionicons name="alarm" size={20} color="white" />
                         <Text style={styles.hospitalBtnText}>{t('set_reminders')}</Text>
                     </TouchableOpacity>
+                </View>
+
+                {/* --- Online Insights & Verification (Wikipedia & Google) --- */}
+                <View style={styles.actionCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                        <Ionicons name="globe-outline" size={20} color={COLORS.primary} />
+                        <Text style={[styles.sectionTitle, { marginBottom: 0, marginLeft: 8 }]}>Online Verification</Text>
+                    </View>
+
+                    {wikiLoading ? (
+                        <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 10 }} />
+                    ) : wikiData ? (
+                        <View style={{ marginBottom: 15 }}>
+                            <Text style={{ fontWeight: '700', color: COLORS.foreground, marginBottom: 5 }}>
+                                {wikiData.title} <Text style={{ fontSize: 12, color: COLORS.mutedForeground, fontWeight: 'normal' }}>(via Wikipedia)</Text>
+                            </Text>
+                            <Text style={styles.bodyText} numberOfLines={6}>
+                                {wikiData.summary}
+                            </Text>
+                            <TouchableOpacity onPress={() => Linking.openURL(wikiData.sourceUrl)}>
+                                <Text style={{ color: COLORS.accent, marginTop: 5, fontSize: 13, fontWeight: '600' }}>Read full article →</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <Text style={[styles.bodyText, { marginBottom: 15 }]}>
+                            Not connected to the internet, or no summary found.
+                        </Text>
+                    )}
+
+                    <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 10 }} />
+
+                    <Text style={{ fontWeight: '600', color: COLORS.foreground, marginBottom: 10, fontSize: 13 }}>Verify with Google:</Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <TouchableOpacity
+                            style={[styles.hospitalBtn, { flex: 1, backgroundColor: '#4285F4', marginHorizontal: 0 }]}
+                            onPress={() => Linking.openURL(`https://www.google.com/search?q=symptoms+of+${encodeURIComponent(results.finalPrediction)}`)}
+                        >
+                            <Ionicons name="logo-google" size={16} color="white" />
+                            <Text style={styles.hospitalBtnText}>Web Search</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.hospitalBtn, { flex: 1, backgroundColor: '#0F9D58', marginHorizontal: 0 }]}
+                            onPress={() => Linking.openURL(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(results.finalPrediction)}`)}
+                        >
+                            <Ionicons name="images" size={16} color="white" />
+                            <Text style={styles.hospitalBtnText}>View Images</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* --- Nearby Hospitals (Real Data List) --- */}
